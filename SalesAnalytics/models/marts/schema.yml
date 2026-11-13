@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: "SCD Type 2 history of customers (no PII). One row per version."
+    columns:
+      - name: customer_key
+        tests: [unique, not_null]
+      - name: customer_id
+        tests: [not_null]
+      - name: loyalty_tier
+        tests:
+          - accepted_values:
+              values: ['Bronze', 'Silver', 'Gold']
+    
+
+  - name: dim_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: unit_cost
+        tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: false}
+
+  - name: dim_stores
+    columns:
+      - name: store_id
+        tests: [unique, not_null]
+      - name: store_type
+        tests:
+          - accepted_values:
+              values: ['Physical', 'Online']
+
+  - name: fct_sales
+    description: "One row per valid, de-duplicated order line. promo_code and sales_channel are NULL for batch 1 (2025)."
+    columns:
+      - name: sale_id
+        tests: [unique, not_null]
+      - name: customer_id
+        description: "2026 sales include customers that only exist in customers_v2. Until v2 is loaded (README step 8) the relationship test warns: a late-arriving dimension."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+              config:
+                severity: warn
+      - name: store_id
+        tests:
+          - relationships:
+              to: ref('dim_stores')
+              field: store_id
+      - name: product_id
+        description: "Orphan product ids (not in the catalogue) are flagged by is_orphan_product; this test is warn-only so one bad feed does not block the build."
+        tests:
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+              config:
+                severity: warn
+      - name: quantity
+        tests:
+          - dbt_utils.accepted_range: {min_value: 1, max_value: 1000}
+      - name: net_amount
+        tests:
+          - dbt_utils.accepted_range: {min_value: 0, inclusive: false}
+      - name: order_status
+        tests:
+          - accepted_values:
+              values: ['COMPLETED', 'SHIPPED', 'CANCELLED', 'PENDING']
+      - name: sales_channel
+        tests:
+          - accepted_values:
+              values: ['IN_STORE', 'WEB', 'MOBILE_APP', 'MARKETPLACE']
+
+  - name: fct_returns
+    columns:
+      - name: return_id
+        tests: [unique, not_null]
+      - name: sale_id
+        tests:
+          - relationships:
+              to: ref('fct_sales')
+              field: sale_id
+
+  - name: mart_store_performance
+    description: "Store x month revenue, margin and refunds. Power BI reads this."
+    
+
+  - name: mart_product_performance
+    columns:
+      - name: product_id
+        tests: [unique, not_null]

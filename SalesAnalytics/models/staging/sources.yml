@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw
+    database: SALES_DEMO
+    schema: RAW
+    description: "Landing tables loaded by COPY INTO (all VARCHAR)."
+    tables:
+      - name: customers
+      - name: products
+      - name: stores
+      - name: returns
+
+  - name: curated
+    database: SALES_DEMO
+    schema: CURATED
+    description: "Typed, de-duplicated sales maintained by the stream + task pipeline."
+    tables:
+      - name: sales_clean
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 7, period: day}
