@@ -8,3 +8,13 @@ SalesAnalytics:
       database: SALES_DEMO
       schema: STAGING
       threads: 8
+
+  target: Prod
+  outputs:
+    prod:
+      type: snowflake
+      role: SALES_ENGINEER
+      warehouse: SALES_WH
+      database: SALES_DEMO
+      schema: Prod
+      threads: 8
