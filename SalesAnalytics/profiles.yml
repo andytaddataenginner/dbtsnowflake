@@ -1,0 +1,10 @@
+SalesAnalytics:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: SALES_ENGINEER
+      warehouse: SALES_WH
+      database: SALES_DEMO
+      schema: STAGING
+      threads: 8
